@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Valentine for My Bacchho</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Lora:ital,wght@0,400;0,500;1,400&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rose-light: #fff1f2;
+            --rose-mid: #fda4af;
+            --rose-dark: #9f1239;
+            --rose-primary: #e11d48; /* Shifted to a stronger red */
+        }
+        body {
+            font-family: 'Lora', serif;
+            background-color: #fee2e2;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        h1, h2 { font-family: 'Playfair Display', serif; }
+        .cursive { font-family: 'Dancing Script', cursive; }
+
+        /* Envelope Animation */
+        #envelope-wrapper {
+            perspective: 1000px;
+            transition: transform 0.8s ease-in-out, opacity 0.5s ease;
+        }
+        .envelope {
+            position: relative;
+            width: 280px;
+            height: 180px;
+            background: #be123c; /* Deeper red */
+            box-shadow: 0 20px 40px rgba(159, 18, 57, 0.4);
+            border-radius: 0 0 8px 8px;
+            cursor: pointer;
+            transition: 0.5s;
+        }
+        .envelope:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            z-index: 4;
+            border-top: 100px solid #e11d48;
+            border-left: 140px solid transparent;
+            border-right: 140px solid transparent;
+            transform-origin: top;
+            transition: transform 0.4s 0.4s;
+        }
+        .envelope.open:before {
+            transform: rotateX(180deg);
+            z-index: 0;
+        }
+        .letter {
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+            width: 260px;
+            height: 160px;
+            background: white;
+            z-index: 1;
+            transition: 0.5s 0.6s;
+            padding: 20px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .envelope.open .letter {
+            transform: translateY(-110px);
+            z-index: 5;
+            box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+        }
+
+        .heart-seal {
+            position: absolute;
+            top: 75px;
+            left: 120px;
+            z-index: 6;
+            color: white;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            transition: 0.4s;
+        }
+        .envelope.open .heart-seal {
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        /* Particles */
+        .sparkle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) scale(0.5) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.6; }
+            100% { transform: translateY(-20vh) scale(1.5) rotate(360deg); opacity: 0; }
+        }
+        .floating-heart {
+            position: absolute;
+            bottom: -100px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Crystal Ball Effect */
+        .crystal-ball {
+            width: 140px;
+            height: 140px;
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(225, 29, 72, 0.4), inset 0 0 20px white;
+            transition: all 0.5s ease;
+            position: relative;
+            margin: 20px auto;
+        }
+        .crystal-ball:hover { transform: scale(1.05); }
+
+        .card-enter {
+            animation: cardSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes cardSlideUp {
+            from { opacity: 0; transform: translateY(50px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .page-transition { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Audio Controls */
+        #music-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            display: none;
+        }
+
+        /* White Heart Pattern for specific pages */
+        .hearts-overlay {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' fill-opacity='0.5' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
+            background-size: 30px 30px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+
+    <div id="heart-bg" class="fixed inset-0 pointer-events-none"></div>
+
+    <button id="music-control" onclick="openMusicTab()" class="bg-red-600 p-3 rounded-full shadow-lg text-white hover:scale-110 transition-transform flex items-center gap-2 border-2 border-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+        <span class="text-[10px] font-bold uppercase tracking-tighter">Music</span>
+    </button>
+
+    <!-- Start Screen -->
+    <div id="intro-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-red-50/95 backdrop-blur-sm transition-opacity duration-1000">
+        <div id="envelope-wrapper" class="flex flex-col items-center gap-12">
+            <div class="space-y-2 text-center">
+                <h1 class="text-4xl text-red-900 font-bold px-4 cursive">Happy Valentine's Day</h1>
+                <p class="text-red-600 italic">To my favorite person, my Bacchho</p>
+            </div>
+            
+            <div class="envelope" id="main-envelope" onclick="openCard(this)">
+                <div class="heart-seal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#be123c" stroke="white" stroke-width="1.5"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.51 4.04 3 5.5l7 7Z"/></svg>
+                </div>
+                <div class="letter shadow-inner flex flex-col items-center justify-center gap-2">
+                    <p class="text-red-700 font-bold font-serif">A Little Secret...</p>
+                    <p class="text-[10px] text-red-400 uppercase tracking-tighter">Tap to open & play music</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+                <p class="text-red-500 font-medium tracking-widest animate-bounce uppercase text-xs">Tap the heart to begin</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card - Resized to max-w-md for a sleeker rectangle -->
+    <main id="main-card" class="hidden max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative z-10 border-[12px] border-red-100/30 mx-4 card-enter">
+        <div class="h-16 bg-white flex items-center justify-center border-b border-red-50">
+            <div class="flex items-center gap-3 text-red-500">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                 <span class="cursive text-xl text-red-800" id="chapter-title">Our Story</span>
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </div>
+        </div>
+
+        <div id="card-body" class="flex-1 p-8 md:p-10 flex flex-col items-center justify-center text-center min-h-[460px] transition-colors duration-1000">
+            <div id="text-container" class="page-transition w-full"></div>
+        </div>
+
+        <div class="p-6 bg-white flex flex-col items-center gap-4">
+            <div class="flex gap-1.5" id="page-dots"></div>
+            <div class="flex justify-between items-center w-full max-w-[200px]">
+                <button onclick="prevPage()" id="prev-btn" class="p-2.5 rounded-full bg-red-50 text-red-300 hover:text-red-600 disabled:opacity-0 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <span class="text-[10px] uppercase tracking-widest font-black text-red-900" id="page-indicator">1 / 12</span>
+                <button onclick="nextPage()" id="next-btn" class="p-2.5 rounded-full bg-red-600 text-white shadow-md hover:bg-red-700 transition-transform active:scale-90">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const YOUTUBE_URL = 'https://youtu.be/9T-Zbxg9X_4?si=dmuLK4nQNqf4f3bN&t=11';
+
+        function openMusicTab() {
+            window.open(YOUTUBE_URL, '_blank');
+        }
+
+        // --- PAGE DATA WITH UNIQUE BACKGROUNDS ---
+        const PAGES = [
+            {
+                title: "The High School Days",
+                bg: "#fff5f5", // Very light red
+                text: "In a world of quiet and nights so deep,\nWhere high school secrets started to creep.\nTwo paths crossed in a teenage affair,\nLong before we knew how much we'd care."
+            },
+            {
+                title: "That Stolen Breath",
+                bg: "#ffe4e6", // Soft rose
+                text: "A smile, some dimples, and magic in the air,\nYou had a laugh that caught me unaware.\nAsmi talked and Sushrit leaned in,\nA story of 'best friends' about to begin."
+            },
+            {
+                title: "Brief Departures",
+                bg: "#fecaca", // Light red
+                text: "Though the clock ticked on and times weren’t still,\nWe chased our dreams with a restless will.\nYour ambitions reached for the morning sky,\nWhile my love for you grew mountain-high."
+            },
+            {
+                title: "Across the Ocean",
+                bg: "#fca5a5", // Soft red
+                whiteHearts: true, // Specific theme trigger
+                text: "But phones stayed warm in the palm of our hands,\nBridging the gap to far-away lands.\nYou crossed the sea, such a long, lonely walk,\nBut the distance only made us truly talk."
+            },
+            {
+                title: "Intertwined Souls",
+                bg: "#fecaca", // Light red
+                whiteHearts: true, // Specific theme trigger
+                text: "I’d stay up late while you saw the sun,\nYou’d chase the hours to find your 'hun'.\nAcross the time zones, we never came undone,\nTwo souls intertwined, becoming as one."
+            },
+            {
+                title: "The World Felt Small",
+                bg: "#ffe4e6", // Rose
+                text: "Then the day arrived, and the world felt small,\nNo more shadows, no more walls.\nJust talking on the bed while the hours flew by,\nSharing every 'how', every 'when', and every 'why'."
+            },
+            {
+                title: "Steady Hands",
+                bg: "#fff1f2", // Very light rose
+                text: "When the sky turned gray, and I lost my sight,\nYou broke the walls, and you held me tight.\nYou wiped my tears and cleared my fears,\nThe steadiest hand through the hardest years."
+            },
+            {
+                title: "The Promise Made",
+                bg: "#fee2e2", // Light pink
+                text: "With a heart of courage, I let it all out,\nI gave you my soul without any doubt.\n'Give me some time,' was the promise you made,\nAnd you mended the pieces that started to fade."
+            },
+            {
+                title: "The Love Story",
+                bg: "#fca5a5", // Soft red
+                text: "Now you’re my anchor, my home, and my light,\nThe one who stays through the thick of the night.\nWith flowers in hand and a flight to the sea,\nYou’re exactly who I knew you could be."
+            },
+            {
+                title: "Beyond the Blue Haze",
+                bg: "#ffe4e6", // Rose
+                text: "So here I am, searching for the perfect words,\nTo describe a love that most only hear of in birds.\nI love you to death, and it’s never too late,\nTo thank the stars for such a beautiful fate."
+            },
+            {
+                title: "Our Rest of Days",
+                bg: "#fee2e2", // Light pink
+                text: "I could write forever and never be through,\nThere isn't enough paper to describe me and you.\nSo here is a poem for the love that stays,\nHappy Valentine’s, baby, for the rest of our days."
+            },
+            {
+                title: "The Future of Us",
+                bg: "#fff1f2", // Lightest
+                isFuture: true,
+                text: "Ten years from now, the home we’ve built will be filled with love, unwavering trust and shared laughter. Chunnu munnu running around and you running after. Life is fast, but one thing remains set in stone: I loved you then, I love you now, and I will love you forever.\n\nIt’s Sushrit and Asmi against the world. ✨💖"
+            }
+        ];
+
+        let currentIndex = 0;
+
+        function openCard(el) {
+            openMusicTab();
+            el.classList.add('open');
+            setTimeout(() => {
+                const overlay = document.getElementById('intro-overlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    document.getElementById('main-card').classList.remove('hidden');
+                    document.getElementById('music-control').style.display = 'flex';
+                    renderPage();
+                    celebrate(0.5);
+                }, 1000);
+            }, 1200);
+        }
+
+        function renderPage() {
+            const page = PAGES[currentIndex];
+            const textCont = document.getElementById('text-container');
+            const cardBody = document.getElementById('card-body');
+            const chapterTitle = document.getElementById('chapter-title');
+            
+            textCont.style.opacity = '0';
+            textCont.style.transform = 'translateY(10px)';
+            
+            // Update Background Color and toggle white heart overlay
+            cardBody.style.backgroundColor = page.bg;
+            if (page.whiteHearts) {
+                cardBody.classList.add('hearts-overlay');
+            } else {
+                cardBody.classList.remove('hearts-overlay');
+            }
+            
+            setTimeout(() => {
+                chapterTitle.innerText = page.title;
+                
+                if (page.isFuture) {
+                    textCont.innerHTML = `
+                        <div id="future-reveal" class="crystal-ball" onclick="revealFuture()">
+                            <span class="text-red-900 font-black text-center p-4 cursive text-lg">Tap to see our future...</span>
+                        </div>
+                        <div id="future-text" class="hidden space-y-4">
+                             ${formatText(page.text)}
+                        </div>
+                    `;
+                } else {
+                    textCont.innerHTML = `<div class="space-y-4">${formatText(page.text)}</div>`;
+                }
+                
+                textCont.style.opacity = '1';
+                textCont.style.transform = 'translateY(0)';
+            }, 300);
+
+            document.getElementById('prev-btn').disabled = currentIndex === 0;
+            document.getElementById('page-indicator').innerText = `${currentIndex + 1} / ${PAGES.length}`;
+
+            const dots = document.getElementById('page-dots');
+            dots.innerHTML = PAGES.map((_, i) => `
+                <div class="w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-red-600 w-4' : 'bg-red-200'}"></div>
+            `).join('');
+        }
+
+        function formatText(text) {
+            return text.split('\n').map(line => 
+                line.trim() === "" ? '<div class="h-2"></div>' : `<p class="text-base md:text-lg text-red-950 leading-relaxed font-semibold italic px-2">${line}</p>`
+            ).join('');
+        }
+
+        function revealFuture() {
+            const ball = document.getElementById('future-reveal');
+            const text = document.getElementById('future-text');
+            ball.style.transform = "scale(0)";
+            setTimeout(() => {
+                ball.style.display = "none";
+                text.classList.remove('hidden');
+                celebrate(0.8);
+            }, 500);
+        }
+
+        function nextPage() { if (currentIndex < PAGES.length - 1) { currentIndex++; renderPage(); } }
+        function prevPage() { if (currentIndex > 0) { currentIndex--; renderPage(); } }
+
+        function celebrate(scalar = 1) {
+            confetti({
+                particleCount: 120 * scalar,
+                spread: 60 * scalar,
+                origin: { y: 0.7 },
+                colors: ['#991b1b', '#dc2626', '#ef4444', '#ffffff']
+            });
+        }
+
+        // Heart Sparkle
+        document.addEventListener('mousemove', (e) => {
+            if (Math.random() > 0.12) return;
+            const s = document.createElement('div');
+            s.className = 'sparkle text-red-600';
+            s.innerHTML = '❤️';
+            s.style.fontSize = (Math.random() * 8 + 8) + 'px';
+            s.style.left = e.pageX + 'px';
+            s.style.top = e.pageY + 'px';
+            document.body.appendChild(s);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 25 + Math.random() * 25;
+            s.animate([
+                { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                { transform: `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px) scale(0)`, opacity: 0 }
+            ], { duration: 800, easing: 'ease-out' }).onfinish = () => s.remove();
+        });
+
+        function spawnHeart() {
+            const container = document.getElementById('heart-bg');
+            const heart = document.createElement('div');
+            const page = PAGES[currentIndex];
+            
+            // If current page has the whiteHearts theme, use white hearts for background floating
+            const heartColor = (page && page.whiteHearts) ? 'text-white opacity-60' : 'text-red-300 opacity-20';
+            
+            heart.className = `floating-heart ${heartColor}`;
+            heart.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+            heart.style.left = Math.random() * 100 + 'vw';
+            const dur = 12 + Math.random() * 8;
+            heart.style.animation = `floatUp ${dur}s linear forwards`;
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), dur * 1000);
+        }
+        setInterval(spawnHeart, 1200);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextPage();
+            if (e.key === 'ArrowLeft') prevPage();
+        });
+    </script>
+</body>
+</html>
